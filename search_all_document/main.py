@@ -73,8 +73,6 @@ class VectorSearch:
         rows_list = []
         # エクスポートしたNotionファイルを保存した`./OikawaPBL2023`フォルダ配下の子フォルダごとに処理を行うためのループ文
         for j, (dirpath, dirnames, filenames) in enumerate(tqdm(os.walk(dir_path), total=self.file_counting(dir_path)[1])):
-            if j > 0:
-                break
             for filename in filenames:  # 一つの子フォルダの中の各ファイルごとに処理を実行
                 file_path = os.path.join(dirpath, filename)  # ディレクトリ名とファイル名を結合してファイルパスを作成
                 chunks = self.load_file(file_path)  # 各ファイルからテキストを抽出してchunk化し、各chunkを格納したリストを返す
@@ -226,7 +224,7 @@ class VectorSearch:
         # クラスタリング空間を定義する量子化器（Quantizer）つくる（コサイン類似度）
         self.quantizer = faiss.IndexFlatIP(self.dim_vector)
         # 下記引数の20はボロノイ領域の数（ボロノイの数は増やすと精度上がって処理時間増えるトレードオフ）
-        self.indexer = faiss.IndexIVFFlat(self.quantizer, self.dim_vector, 2)
+        self.indexer = faiss.IndexIVFFlat(self.quantizer, self.dim_vector, 20)
         # ベクトルデータベースからボロノイ領域を生成
         self.indexer.train(self.chunk_vectorized)
 
