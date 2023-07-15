@@ -303,7 +303,7 @@ if __name__ == "__main__":
     df_corpus = vector_search.init_dataset(dir_path="./search_all_document/data")
 
     while True:
-        print("さあ、なんでも聞いてみぃ")
+        print("さあ、なんでも聞いてね。")
         # ユーザー質問文入力。いろいろ変えてみてください！（まだなかなかいい結果でません(;ω;)）
         query = str(input())
         print(vector_search.answer(query, n_answer=15))  # 類似度上位何位まで表示するかを引数で指定できるよーにしています。
