@@ -20,3 +20,4 @@ PyGithub
 faiss-cpu
 tiktoken
 gunicorn>=20
+python-pptx
