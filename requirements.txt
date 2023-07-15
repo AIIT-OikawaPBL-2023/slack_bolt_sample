@@ -20,3 +20,6 @@ PyGithub
 faiss-cpu
 tiktoken
 gunicorn>=20
+transformers
+spacy
+torch
