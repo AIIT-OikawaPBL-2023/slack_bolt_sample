@@ -46,11 +46,24 @@ docker run -p 11111:11111 --env-file .env  my_app
 
 
 ## CloudRun
+
+### for Linux or Mac
+```bash
 export SLACK_APP_TOKEN=xxxxxxxxxxxx
 export SLACK_BOT_TOKEN=xxxxxxxxxxxx
 export SLACK_SIGNING_SECRET=xxxxxxxxxxxx
 gcloud builds submit --tag gcr.io/$PROJECT_ID/helloworld
-gcloud run deploy helloworld --image gcr.io/$PROJECT_ID/helloworld --platform managed --update-env-vars SLACK_SIGNING_SECRET=$SLACK_APP_TOKEN,SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
+gcloud run deploy helloworld --image gcr.io/$PROJECT_ID/helloworld --platform managed --update-env-vars SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
+```
+
+### for Windows
+```powershell
+set SLACK_APP_TOKEN=xxxxxxxxxxxx
+set SLACK_BOT_TOKEN=xxxxxxxxxxxx
+set SLACK_SIGNING_SECRET=xxxxxxxxxxxx
+gcloud builds submit --tag gcr.io/%PROJECT_ID%/helloworld
+gcloud run deploy helloworld --image gcr.io/%PROJECT_ID%/helloworld --platform managed --update-env-vars SLACK_BOT_TOKEN=%SLACK_BOT_TOKEN%,SLACK_SIGNING_SECRET=%SLACK_SIGNING_SECRET%
+```
 
 ## 設定
 https://{ngrokやcloudrunのエンドポイント}/slack/events
