@@ -1,16 +1,20 @@
 import os
 import re
+import shutil
 
 from dotenv import load_dotenv
 from langchain import LLMChain
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts.chat import (ChatPromptTemplate,
-                                    HumanMessagePromptTemplate,
-                                    SystemMessagePromptTemplate)
+from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 
 load_dotenv()
+
+# pptxとpblで使っているpythonの喰い合わせが悪いのでいっこモジュールを置き換える
+src = "./first-bolt-app/data/for_replace/__init__.py"
+dst = "/home/vscode/.local/lib/python3.11/site-packages/pptx/compat/__init__.py"
+shutil.copy(src, dst)
 
 
 class MyChatGPT:
@@ -22,16 +26,12 @@ class MyChatGPT:
         You are an assistant who thinks step by step and includes a thought path in your response.
         Your answers are in Japanese.
         """
-        system_message_prompt = SystemMessagePromptTemplate.from_template(
-            system_template
-        )
+        system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
 
         human_template = "{user_prompt}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
-        chat_prompt = ChatPromptTemplate.from_messages(
-            [system_message_prompt, human_message_prompt]
-        )
+        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
         chat_prompt.input_variables = ["user_prompt"]
 
         chain = LLMChain(llm=llm, prompt=chat_prompt)
