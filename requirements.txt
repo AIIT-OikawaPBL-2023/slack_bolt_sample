@@ -20,3 +20,5 @@ PyGithub
 faiss-cpu
 tiktoken
 gunicorn>=20
+Chroma
+chromadb
