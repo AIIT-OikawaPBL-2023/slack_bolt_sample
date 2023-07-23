@@ -17,3 +17,6 @@ rich
 flask
 notion_client
 PyGithub
+faiss-cpu
+tiktoken
+gunicorn>=20
