@@ -4,6 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import List
 
+import faiss
+import numpy as np
 import openai
 import pandas as pd
 import requests
@@ -11,8 +13,10 @@ from dotenv import load_dotenv
 from langchain import LLMChain
 from langchain.callbacks.manager import CallbackManager
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from openai.embeddings_utils import cosine_similarity, get_embedding
+from langchain.prompts.chat import (ChatPromptTemplate,
+                                    HumanMessagePromptTemplate,
+                                    SystemMessagePromptTemplate)
+from openai.embeddings_utils import get_embedding
 from pdfminer.high_level import extract_pages, extract_text
 from pdfminer.layout import LTTextContainer
 from pdfminer.pdfparser import PDFSyntaxError
@@ -38,6 +42,8 @@ class CoPyBotPDF:
     def __init__(self):
         self.slack_app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
         self.register_listeners()
+        self.model_name = "gpt-3.5-turbo-0613"
+        self.n_trials = 0
 
     def create_chain(self, llm):
         system_template = """
@@ -68,7 +74,11 @@ class CoPyBotPDF:
 
         callback_manager = CallbackManager([SlackCallbackHandler(say_function)]) if self.is_streaming else None
 
-        return ChatOpenAI(temperature=0, openai_api_key=os.environ.get("OPENAI_API_KEY"), model_name="gpt-3.5-turbo", streaming=self.is_streaming, callback_manager=callback_manager)
+        return ChatOpenAI(temperature=0,
+                          openai_api_key=os.environ.get("OPENAI_API_KEY"),
+                          model_name=self.model_name,
+                          streaming=self.is_streaming,
+                          callback_manager=callback_manager)
 
     def register_listeners(self):
         @self.slack_app.message(re.compile("(PDF|pdf喰ってね|よろしく)"))
@@ -123,24 +133,65 @@ class CoPyBotPDF:
             except KeyError:
                 pass
 
+    def init_voronoi_indexer(self):
+        """
+        クラスタリングによってデータ空間をボロノイ領域に分割することにより
+        高速な近傍探索を可能にするためのindexerを初期化するメソッド
+        ボロノイ領域の紹介はこちら --> https://ja.wikipedia.org/?curid=91418
+        このアルゴリズムでは質問クエリに対して、その周辺領域のみで探索できるので
+        総当たりせずに済むので探索にかかる時間を大幅に短縮できる
+        """
+
+        # 30ページを超える分量の多いPDFファイルに適用
+        n_pages = len(self.embedding_array)
+        if n_pages > 30:
+            # ボロノイ領域の数
+            # クラスタリング空間を定義する量子化器（Quantizer）つくる（L2ノルム）
+            self.quantizer = faiss.IndexFlatL2(1536)
+            # 下記引数の1536はembeddingの次元数、20はボロノイ領域の数（ボロノイの数は増やすと精度上がって処理時間増えるトレードオフ）
+            # embeddingの次元数は`text-embedding-ada-002`以外を使う場合には変更が必要。BERT-baseなら768次元など。
+            self.indexer = faiss.IndexIVFFlat(self.quantizer, 1536, 20)
+            # ベクトルデータベースからボロノイ領域を生成
+            self.indexer.train(self.embedding_array)
+            # ボロノイ領域にデータを追加
+            self.indexer.add(self.embedding_array)
+        else:
+            # 分量の少ないテキストデータに対しては総当たり探索でも問題ないので
+            # 単体のL2ノルムアルゴリズムを使う。
+            self.indexer = faiss.IndexFlatL2(1536)
+            # データを追加
+            self.indexer.add(self.embedding_array)
+
+    def voronoi_diagram_search(self, query_embedding):
+        """
+        ボロノイ領域による近傍探索を実行するメソッド
+
+        Args:
+            query_embedding (np.ndarray): 質問クエリをembeddingしたやつ
+
+        Returns:
+            top_n_pages (pandas.DataFrame): 上位n件のテキスト情報を格納したデータフレーム
+        """
+        # 近傍探索の実行。
+        query_embedding = np.array([query_embedding]).astype("float32")
+        _, idx = self.indexer.search(query_embedding, 3)
+        return self.pages_df.iloc[idx[0]]
+
     def answer_about_pdf(self, query, say):
         # query文字列とそのembedding
         query_embedding = get_embedding(query, engine="text-embedding-ada-002")
 
-        # コサイン類似度を計算
-        self.pages_df["similarity"] = self.pages_df["embedding"].apply(lambda x: cosine_similarity(x, query_embedding))
+        # 初回応答時のみボロノイ探索のためのindexerを初期化
+        if self.n_trials == 0:
+            self.init_voronoi_indexer()
 
-        # 類似度の降順に並び替え
-        sorted_pages_df = self.pages_df.sort_values(by="similarity", ascending=False)
-
-        # 上位n件のテキストを取得
-        n = 3
-        top_n_pages = sorted_pages_df.head(n)
+        # ボロノイ探索を実行。上位3件のテキストを取得
+        top_n_pages = self.voronoi_diagram_search(query_embedding)
 
         # 上位n件のテキストを取得してLLMに渡すためのリストに追加
         similarity_texts = []
         for index, row in top_n_pages.iterrows():
-            print(f"\nPage {row.page_number} (similarity: {row.similarity}):")
+            print(f"\nPage {row.page_number}):")
             similarity_texts.append(row.text)
 
         # https://github.com/openai/openai-cookbook/blob/main/examples/Question_answering_using_embeddings.ipynb
@@ -150,14 +201,15 @@ class CoPyBotPDF:
             organized_text += SEPARATOR
             organized_text += s
 
-        if num_tokens(organized_text) > 4096:
+        if num_tokens(organized_text, self.model_name) > 3000:
             # トークン数が上限にかかっている場合、強制的に文字数を減らす
-            # 少し余裕をみて3800文字までに設定
-            organized_text = organized_text[:3800]
+            # 少し余裕をみて3000文字までに設定
+            organized_text = organized_text[:3000]
 
         self.chain = self.create_chain(self.get_llm(say))
         summary = self.chain.run(pdf_content=organized_text, query=query[5:])
         say(summary)
+        self.n_trials += 1
 
     def process_file_share(self, event, say, client):
         try:
@@ -180,6 +232,7 @@ class CoPyBotPDF:
                 pages_text = self.extract_page_text(pdf_file)
 
                 pages = []
+                self.embedding_array = []
                 for idx, page_text in enumerate(tqdm(pages_text)):
                     # https://github.com/openai/openai-cookbook/blob/main/examples/Semantic_text_search_using_embeddings.ipynb
                     # ベクトル埋め込みを行うためのOPENAI APIの関数
@@ -187,9 +240,11 @@ class CoPyBotPDF:
                     # ページごとの情報をPageクラスのインスタンスに変換してリストに追加
                     page = Page(page_number=idx + 1, text=page_text, embedding=embedding)
                     pages.append(page)
+                    self.embedding_array.append(embedding)
 
                 # pagesリストをDataFrameに変換
                 self.pages_df = pd.DataFrame(pages)
+                self.embedding_array = np.array(self.embedding_array).astype("float32")
                 say("OK. 準備ができたよ。このPDFに関することなら何でも聞いてね。")
 
             else:

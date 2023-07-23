@@ -19,3 +19,5 @@ notion_client
 PyGithub
 arxiv
 gunicorn>=20
+faiss-cpu
+tiktoken
