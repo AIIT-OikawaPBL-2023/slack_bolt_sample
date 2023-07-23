@@ -11,9 +11,6 @@ from rich import print
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
-
 
 # 環境変数を設定
 load_dotenv()
@@ -39,7 +36,6 @@ You are an assistant who thinks step by step and includes a thought path in your
 
 # ユーザーからの入力
 human_template = """
-{chat_history}
 {text}"""
 
 
@@ -50,11 +46,10 @@ human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
 
 # (参考) https://note.com/npaka/n/n155e66a263a2
-chat_prompt.input_variables = ["text", "chat_history"]
-memory = ConversationBufferMemory(memory_key="chat_history")
+chat_prompt.input_variables = ["text"]
 
 # カスタムプロンプトを入れてchain 化
-chain = LLMChain(llm=llm, prompt=chat_prompt, memory=memory)
+chain = LLMChain(llm=llm, prompt=chat_prompt)
 
 
 @app.event("app_mention")
@@ -68,12 +63,12 @@ def command_handler(body, say, client):
 @app.shortcut("post-thesis-modal")
 def post_thesis_modal_open(ack, body, client):
     """
-    論文検索モーダルを開く
+    論文検索用モーダルを開く
     """
     ack()
     client.views_open(
         trigger_id=body["trigger_id"],
-        view=thesis.ThesisInteractor.build_arxiv_modal(),
+        view=thesis.ThesisInteractor().build_arxiv_modal(),
     )
 
 
@@ -106,8 +101,19 @@ def post_thesis_modal_events(ack, body, say):
         return
 
     ack()
-    result = thesis.ThesisInteractor.search_from_arxiv(body)
-    say(result, channel=c_id)
+    obj = thesis.ThesisInteractor()
+    result = obj.search_from_arxiv(body)
+    say(text=f"キーワード: {obj.word}で検索して{obj.type_ja()}を最大{obj.count}件出力します", channel=c_id)
+    say(text=f"要約文を生成しています", channel=c_id)
+    say(text="devider", blocks=[{"type": "divider"}], channel=c_id)
+
+    for i, r in enumerate(result, 1):
+        # 要約用message取得と要約実行
+        reply = chain.run(text=obj.gpt_message(r.summary))
+        # 出力用message取得
+        message = obj.output_message(reply, r)
+        say(text=f"* {str(i)}つ目\n{message}", channel=c_id)
+        say(text="devider", blocks=[{"type": "divider"}], channel=c_id)
 
 
 # アプリを起動します
