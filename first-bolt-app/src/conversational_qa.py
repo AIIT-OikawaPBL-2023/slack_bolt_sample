@@ -199,7 +199,7 @@ class ConversationalRetrievalQAChain:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--src_path', '-s', type=str,
-                        default='./first-bolt-app/data/scram_rules.txt',
+                        default='./first-bolt-app/data/[sample]scram_rules.txt',
                         help='path to source text file')
     parser.add_argument('--chain_type', '-c', type=str,
                         default='stuff',
