@@ -1,0 +1,9 @@
+version: "2"
+authtoken: YOUR_AUTH_TOKEN # ngrokにログインすると確認できる認証情報トークン
+console_ui: true   # コンソールUIを有効にするかどうか
+web_addr: localhost:4040
+
+tunnels:
+  app:
+    addr: app:11111   # 公開したいローカルのポート番号
+    proto: http   # 使用するプロトコル (http, https, tcp, tls のいずれか)

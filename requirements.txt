@@ -17,9 +17,11 @@ rich
 flask
 notion_client
 PyGithub
+ngrok-api
+arxiv
+gunicorn>=20
 faiss-cpu
 tiktoken
-gunicorn>=20
 transformers
 spacy
 torch

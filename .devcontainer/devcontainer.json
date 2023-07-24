@@ -4,23 +4,28 @@
 	// UIに表示されるdevコンテナの名前
 	"name": "bolt_sample",
 
-	"build": {
-		// Dockerfileを使用する場合に必要です。コンテナの中身を定義するDockerfileの場所です。パスはdevcontainer.jsonファイルからの相対パスです。
-		"dockerfile": "../Dockerfile"
-	},
+	// "build": {
+	// 	// Dockerfileを使用する場合に必要です。コンテナの中身を定義するDockerfileの場所です。パスはdevcontainer.jsonファイルからの相対パスです。
+	// 	"dockerfile": "../Dockerfile"
+	// },
 
-	// "dockerComposeFile": [
-	// 	// Docker Composeを使用する場合に必要です。コンテナの中身を定義するDocker Composeファイルの場所です。パスはdevcontainer.jsonファイルからの相対パスです。
-	// 	"../docker-compose.yml"
-	// ],
+	"dockerComposeFile": [
+		// Docker Composeを使用する場合に必要です。コンテナの中身を定義するDocker Composeファイルの場所です。パスはdevcontainer.jsonファイルからの相対パスです。
+		"../docker-compose.yml",
+		// "docker-compose.yml"
+	],
 	// // devcontainerでshellなど？で使用するdocker composeのservice名
-  // "service": "app",
+  "service": "app",
   // // 指定したserviceコンテナのworkspaceフォルダ
-  // "workspaceFolder": "/app",
+  "workspaceFolder": "/workspace/${localWorkspaceFolderBasename}",
 	// コンテナ内で参照される環境変数.
 	"containerEnv": {
 		// タイムゾーンが Asia/Tokyoになるよう設定。時刻に起因する問題の調査は難しいので、ここで明示的に設定
 		"TZ": "Asia/Tokyo"
+	},
+	// Use this environment variable if you need to bind mount your local source code into a new container.
+	"remoteEnv": {
+		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
 	},
 	// 開発用コンテナに追加する機能 詳細は: https://containers.dev/features.
 	// "features": {},
@@ -99,7 +104,7 @@
 			],
 			// devcontainer.jsonをサポートするツールが、関連するツールウィンドウを閉じる/シャットダウンする際に、コンテナを停止させるかどうかを示します。
 			// 値は、none、stopContainer（イメージまたはDockerfileのデフォルト）、stopCompose（Docker Composeのデフォルト）です。
-			// "shutdownAction": "stopCompose"
+			"shutdownAction": "stopCompose"
 		}
 	}
 	// 代わりにrootとして接続する場合は、コメントを解除してください。詳しくは、 https://aka.ms/dev-containers-non-root.
