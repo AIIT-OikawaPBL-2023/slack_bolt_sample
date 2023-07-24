@@ -22,7 +22,7 @@ class SlackAppController(object):
         self.handler.start()
 
     def runFlask(self, flask_app):  # ngrok のポートと合わせてください
-        flask_app.run(host="0.0.0.0", port=5422)
+        flask_app.run(host="0.0.0.0", port=11111)
 
 
 # 下記はデバックでapp_handler単体をソケットモードで動かす
