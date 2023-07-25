@@ -16,7 +16,7 @@ from langchain.prompts import PromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 
-load_dotenv('.env_individual')
+load_dotenv()
 
 
 class ConversationalRetrievalQAChain:
