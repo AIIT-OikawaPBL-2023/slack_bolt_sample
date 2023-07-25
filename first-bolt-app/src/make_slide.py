@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 
 from dotenv import load_dotenv
 from langchain import LLMChain
@@ -10,11 +9,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 
 load_dotenv()
-
-# pptxとpblで使っているpythonの喰い合わせが悪いのでいっこモジュールを置き換える
-src = "./first-bolt-app/data/for_replace/__init__.py"
-dst = "/home/vscode/.local/lib/python3.11/site-packages/pptx/compat/__init__.py"
-shutil.copy(src, dst)
 
 
 class MyChatGPT:
