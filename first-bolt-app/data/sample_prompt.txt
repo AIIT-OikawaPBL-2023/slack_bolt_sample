@@ -1,7 +1,7 @@
 以下のドキュメント内容をうまくまとめてプレゼンテーションスライドを作ってね。
 とは言っても、君は直接スライドを操作できるわけではないから、代わりに君が作成したスライドを`python-pptx`を使ってファイル化するPythonコード全体を提示してね。
 slide.placeholdersのindexを間違えないようにしてね。
-なお、スライドの出力先Pathは`/workspaces/slack_bolt_sample/first-bolt-app/static`としてね。
+なお、スライドの出力先Pathは`/workspace/slack_bolt_sample/first-bolt-app/static`としてね。
 返事はPythonコードのみとしてね。
 Pythonコード以外の返事は不要だよ。
 また、`python-pptx`はインストール済みの環境で実行するから`pip install`について示すのは不要だよ。
